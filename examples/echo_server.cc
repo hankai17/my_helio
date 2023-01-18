@@ -541,7 +541,7 @@ int main(int argc, char* argv[]) {
 
   std::unique_ptr<ProactorPool> pp;
   if (absl::GetFlag(FLAGS_epoll)) {
-    pp.reset(new epoll::EpollPool);
+    pp.reset(new epoll::EpollPool(1));
   } else {
     pp.reset(new UringPool);
   }

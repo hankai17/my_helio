@@ -189,7 +189,7 @@ bool FiberSchedAlgo::SuspendIoLoop(uint64_t now) {
   DVLOG(2) << "WaitTillFibersSuspend:Start";
   suspend_main_ts_ = now;
 
-  main_cntx_->suspend();
+  main_cntx_->suspend(); // // 开始"点炮"执行ready队列上的协程们
   flags_.ioloop_suspended = 0;
   flags_.ioloop_yielded = 0;
   flags_.ioloop_woke = 0;

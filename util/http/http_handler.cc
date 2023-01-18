@@ -231,7 +231,7 @@ void HttpConnection::HandleRequests() {
     VLOG(1) << "Full Url: " << request.target();
     HandleSingleRequest(request, &cntx);
   }
-
+  std::cout << "HttpConnection exit " << ec.message() << std::endl;
   VLOG(1) << "HttpConnection exit " << ec.message();
   LOG_IF(INFO, !FiberSocketBase::IsConnClosed(ec)) << "Http error " << ec.message();
 }

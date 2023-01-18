@@ -4,10 +4,12 @@ project(helio)
 set(CMAKE_C_COMPILER /usr/local//gcc/bin/gcc)
 set(CMAKE_CXX_COMPILER /usr/local/gcc/bin/g++)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g")
 
 include_directories(./)
 include_directories(/usr/local/include/mimalloc-2.0/)
 link_directories(/root/file/gcc-9.1.0/x86_64-pc-linux-gnu/libstdc++-v3/src/.libs)
+link_directories(/root/file/boost_1_72_0/stage/lib)
 
 find_package(absl REQUIRED)
 find_package(OpenSSL REQUIRED)
