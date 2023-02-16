@@ -34,24 +34,91 @@ boost::fibers::fiber oops() {
 // this leads to undefined behaviour
 
 int main1() {
-    std::cout << "Hello, World!" << std::endl;
     auto f = copies_are_safe(); // 1. fiber挂到schedule队列里
     sleep(3);
     f.join(); // 2. 从队列拿一个resume
+    std::cout << "Hello, World!" << std::endl; // 3. join消费完毕会走到这里
     return 0;
 }
 
-int main() {
+int main2() {
     std::cout << "before fiber, active id: " << boost::fibers::context::active()->get_id() << std::endl;
     auto f = copies_are_safe(); // 1. fiber挂到schedule队列里
     std::cout << &f << ", id: " << f.get_id() << std::endl;
     f.detach(); //impl析构 那么impl只存在于schedule队列里
     std::cout << "after fiber detach, active id: " << boost::fibers::context::active()->get_id() << std::endl;
-
-    //boost::fibers::context::active()->resume(); // resume current active // coredown
-    //std::cout << "has_ready_fibers: " << boost::fibers::has_ready_fibers() << std::endl;
-    //std::cout << boost::fibers::context::active()->get_scheduler()->has_ready_fibers() << std::endl;
-    boost::fibers::context::active()->get_scheduler()->suspend();
     A a;
     return 0; // 因为schedule队列没有调用时机 那么在析构时会遍历队列依次resume
 }
+
+int main3() {
+    std::cout << "before fiber, active id: " << boost::fibers::context::active()->get_id() << std::endl;
+    auto f = copies_are_safe(); // 1. fiber挂到schedule队列里
+    std::cout << &f << ", id: " << f.get_id() << std::endl;
+    f.detach(); //impl析构 那么impl只存在于schedule队列里
+    std::cout << "after fiber detach, active id: " << boost::fibers::context::active()->get_id() << std::endl;
+    std::cout << "has_ready_fibers: " << boost::fibers::has_ready_fibers() << std::endl; // 队列上确实有ready fiber
+    std::cout << boost::fibers::context::active()->get_scheduler()->has_ready_fibers() << std::endl; // 队列上确实有ready fiber
+    // 如何主动让队列消费fiber？
+    // 失败方案1
+    boost::fibers::context::active()->get_scheduler()->suspend(); // 即手动调用让队列pick_next消费之
+    // 但fiber运行完 就直接卡到suspend里了
+    // 失败方案2
+    //boost::fibers::context::active()->resume(); // resume current active // coredown
+    A a;
+    return 0;
+}
+
+using ready_queue_type = ::boost::fibers::scheduler::ready_queue_type;
+ready_queue_type rqueue_;
+
+int main() {
+#if 1
+    auto main_cntx = boost::fibers::context::active();
+    auto main_scheduler = boost::fibers::context::active()->get_scheduler();
+    std::cout << "active is main_ctx? " << main_cntx->is_context(boost::fibers::type::main_context) << std::endl; // 1
+    std::cout << "id: " << main_cntx->get_id() << std::endl;
+    while (1) {
+        sleep(1);
+        // do something to push_back fiber into ready_list
+        auto f = copies_are_safe();
+        f.detach();
+        //main_cntx_->ready_link(rqueue_);
+        //main_scheduler->schedule(main_cntx);
+        //main_scheduler->suspend();
+        boost::this_fiber::yield();
+        //->is_context(fibers::type::dispatcher_context));
+        std::cout << "after suspend" << std::endl;
+    }
+#else
+    auto worker_ctx = boost::fibers::worker_context();
+#endif
+    return 0;
+}
+
+void thread(std::uint32_t thread_count)
+{
+    boost::fibers::use_scheduling_algorithm<boost::fibers::algo::work_stealing>(thread_count);
+
+    while (1) {
+        auto f = copies_are_safe();
+        f.detach();
+        sleep(1);
+    }
+}
+
+int main5()
+{
+    std::uint32_t thread_count = std::thread::hardware_concurrency();
+    std::vector<std::thread> threads;
+    for (std::uint32_t i = 1; i < thread_count; i++) {
+        threads.emplace_back(thread, thread_count);
+    }
+    boost::fibers::use_scheduling_algorithm<boost::fibers::algo::work_stealing>(thread_count);
+    while (1) {
+        std::cout << "cycling..." << std::endl;
+        sleep(1);
+    }
+    return 0;
+}
+
