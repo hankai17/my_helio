@@ -72,7 +72,7 @@ int main3() {
 using ready_queue_type = ::boost::fibers::scheduler::ready_queue_type;
 ready_queue_type rqueue_;
 
-int main() {
+int main4() {
 #if 1
     auto main_cntx = boost::fibers::context::active();
     auto main_scheduler = boost::fibers::context::active()->get_scheduler();
@@ -122,3 +122,122 @@ int main5()
     return 0;
 }
 
+#if 0
+void normal_fun(boost::context::detail::transfer_t transfer)
+{
+    std::cout << "normal_fun..."<< ", &transfer: " << &transfer
+              << ": <transfer.fctx: " << transfer.fctx << ", transfer.data: " << transfer.data << ">" << std::endl;
+    auto ret_ctx = boost::context::detail::jump_fcontext(transfer.fctx, 0); // 2 from is 84a180, current fctx 12ff80
+    std::cout << "normal_fun2..."<< ", &transfer: " << &ret_ctx
+              << ": <ret_ctx.fctx: " << ret_ctx.fctx << ", ret_ctx.data: " << ret_ctx.data << ">" << std::endl; // 4 from is 84a180
+    ret_ctx = boost::context::detail::jump_fcontext(ret_ctx.fctx, 0);
+
+}
+
+int transfer_fun_test()
+{
+    int stacksize = 1024 * 1024;
+    char *stack = (char*)malloc(1024 * 1024);
+    boost::context::detail::fcontext_t ctx  = boost::context::detail::make_fcontext(stack, stacksize, normal_fun);
+    std::cout << "ctx: " << ctx << std::endl;
+    auto ret_ctx = boost::context::detail::jump_fcontext(ctx, 0); // 1 current fctx 84a180
+    std::cout << "normal_fun1..."<< ", &ret_ctx: " << &ret_ctx
+              << ": <ret_ctx.fctx: " << ret_ctx.fctx << ", ret_ctx.data: " << ret_ctx.data << ">" << std::endl; // 3 from is 12ff80
+    ret_ctx = boost::context::detail::jump_fcontext(ret_ctx.fctx, 0); // 3 from is 12ff80
+    std::cout << "normal_fun3..."<< ", &ret_ctx: " << &ret_ctx
+              << ": <ret_ctx.fctx: " << ret_ctx.fctx << ", ret_ctx.data: " << ret_ctx.data << ">" << std::endl; // 5 from is 12ff80
+    return 0;
+}
+#else
+#if 1 == 0
+void normal_fun(boost::context::detail::transfer_t transfer)
+{
+    std::cout << "normal_fun..."<< ", transfer: " << &transfer
+              << ": <transfer.fctx: " << transfer.fctx << ", transfer.data: " << transfer.data << ">" << std::endl;
+    //boost::context::detail::jump_fcontext(transfer.fctx, 0);
+}
+
+boost::context::detail::transfer_t ontop_fun(boost::context::detail::transfer_t transfer)
+{
+    std::cout << "ontop_fun..." << ", transfer: " << &transfer
+              << ": <transfer.fctx: " << transfer.fctx << ", transfer.data: " << transfer.data << ">" << std::endl;
+    //auto ret_ctx = boost::context::detail::jump_fcontext(transfer.fctx, 0); // 提前返回
+    return transfer;
+}
+
+int transfer_ontop_fun_test()
+{
+    int stacksize = 1024 * 1024;
+    char *stack = (char*)malloc(1024 * 1024);
+    boost::context::detail::fcontext_t ctx  = boost::context::detail::make_fcontext(stack, stacksize, normal_fun);
+    std::cout << "ctx: " << ctx << std::endl;
+
+    auto ret_ctx = boost::context::detail::ontop_fcontext(ctx, 0, ontop_fun);
+    std::cout << "ontop_fun1..." << std::endl;
+    return 0;
+}
+#elif 1 == 1
+
+boost::context::detail::transfer_t ontop_fun(boost::context::detail::transfer_t transfer)
+{
+    std::cout << "ontop_fun..." << ", transfer: " << &transfer
+              << ": <transfer.fctx: " << transfer.fctx << ", transfer.data: " << transfer.data << ">" << std::endl;
+    //boost::context::detail::jump_fcontext(transfer.fctx, 0);
+    return transfer;
+}
+
+void normal_fun(boost::context::detail::transfer_t transfer)
+{
+    std::cout << "normal_fun..."<< ", transfer: " << &transfer
+              << ": <transfer.fctx: " << transfer.fctx << ", transfer.data: " << transfer.data << ">" << std::endl;
+    auto ret_ctx = boost::context::detail::ontop_fcontext(transfer.fctx, 0, ontop_fun);
+    std::cout << "normal_fun..." << std::endl;
+    boost::context::detail::jump_fcontext(transfer.fctx, 0);
+}
+
+int transfer_ontop_fun_test() {
+    int stacksize = 1024 * 1024;
+    char *stack = (char *) malloc(1024 * 1024);
+    boost::context::detail::fcontext_t ctx = boost::context::detail::make_fcontext(stack, stacksize, normal_fun);
+    std::cout << "ctx: " << ctx << std::endl;
+    boost::context::detail::jump_fcontext(ctx, 0);
+    std::cout << "main_ctx_fun..." << std::endl;
+
+    return 0;
+}
+#else
+void normal_fun(boost::context::detail::transfer_t transfer)
+{
+    std::cout << "normal_fun..."<< ", transfer: " << &transfer
+            << ": <transfer.fctx: " << transfer.fctx << ", traansfer.data: " << transfer.data << ">" << std::endl;
+    boost::context::detail::jump_fcontext(transfer.fctx, 0);
+}
+
+boost::context::detail::transfer_t ontop_fun(boost::context::detail::transfer_t transfer)
+{
+    std::cout << "ontop_fun..." << ", transfer: " << &transfer
+            << ": <transfer.fctx: " << transfer.fctx << ", transfer.data: " << transfer.data << ">" << std::endl;
+    return boost::context::detail::transfer_t {transfer.fctx, 0};
+}
+
+int transfer_ontop_fun_test()
+{
+    int stacksize = 1024 * 1024;
+    char *stack = (char *) malloc(1024 * 1024);
+    boost::context::detail::fcontext_t ctx = boost::context::detail::make_fcontext(stack, stacksize, normal_fun);
+    std::cout << "ctx: " << ctx << std::endl;
+
+    auto ret_ctx = boost::context::detail::ontop_fcontext(ctx, 0, ontop_fun);
+    std::cout << "ontop_fun1..." << std::endl;
+    return 0;
+}
+#endif
+#endif
+
+int main()
+{
+    //transfer_fun_test();
+    transfer_ontop_fun_test();
+
+    return 0;
+}
