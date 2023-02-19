@@ -72,7 +72,7 @@ int main3() {
 using ready_queue_type = ::boost::fibers::scheduler::ready_queue_type;
 ready_queue_type rqueue_;
 
-int main4() {
+int main() {
 #if 1
     auto main_cntx = boost::fibers::context::active();
     auto main_scheduler = boost::fibers::context::active()->get_scheduler();
@@ -126,7 +126,7 @@ int main5()
 void normal_fun(boost::context::detail::transfer_t transfer)
 {
     std::cout << "normal_fun..."<< ", &transfer: " << &transfer
-              << ": <transfer.fctx: " << transfer.fctx << ", transfer.data: " << transfer.data << ">" << std::endl;
+              << ": <transfer.fctx: " << transfer.fctx << ", transfer.data: " << transfer.data << ">" << std::endl; // 为什么跟make_fcontext返出得ctx不一样?
     auto ret_ctx = boost::context::detail::jump_fcontext(transfer.fctx, 0); // 2 from is 84a180, current fctx 12ff80
     std::cout << "normal_fun2..."<< ", &transfer: " << &ret_ctx
               << ": <ret_ctx.fctx: " << ret_ctx.fctx << ", ret_ctx.data: " << ret_ctx.data << ">" << std::endl; // 4 from is 84a180
@@ -165,7 +165,7 @@ boost::context::detail::transfer_t ontop_fun(boost::context::detail::transfer_t 
     return transfer;
 }
 
-int transfer_ontop_fun_test()
+int transfer_fun_test()
 {
     int stacksize = 1024 * 1024;
     char *stack = (char*)malloc(1024 * 1024);
@@ -177,12 +177,32 @@ int transfer_ontop_fun_test()
     return 0;
 }
 #elif 1 == 1
+/*
+    template< typename Ctx, typename Fn >
+    transfer_t fiber_ontop( transfer_t t) {                     // 2.1 fiber_ontop函数即是对fn得封装而已
+        auto p = *static_cast< Fn * >( t.data);
+        t.data = nullptr;
+        // execute function, pass fiber via reference
+        Ctx c = p( Ctx{ t.fctx } );                             // 2.2 执行回调fn 传参为从何处来 即在那个fiber上触发的该fiber
+        return { std::exchange( c.fctx_, nullptr), nullptr };
+    }
 
-boost::context::detail::transfer_t ontop_fun(boost::context::detail::transfer_t transfer)
+    template< typename Fn >
+    fiber resume_with( Fn && fn) && {
+        return { detail::ontop_fcontext(
+                    std::exchange(fctx_, nullptr),              // 1. 在fctx_上运行 fiber_ontop函数
+                    &fn,
+                    detail::fiber_ontop< fiber, decltype(fn) >  // 2. fiber_ontop函数即是对fn得封装而已
+                 ).fctx 
+        };
+    }
+    // resume_with的意思就是在(当前fiber即this上)fctx上运行fn
+*/
+boost::context::detail::transfer_t ontop_fun(boost::context::detail::transfer_t transfer) // ontop函数 见名知意 即就像在要运行的fiber之前插入了一段代码一样
 {
     std::cout << "ontop_fun..." << ", transfer: " << &transfer
               << ": <transfer.fctx: " << transfer.fctx << ", transfer.data: " << transfer.data << ">" << std::endl;
-    //boost::context::detail::jump_fcontext(transfer.fctx, 0);
+    //boost::context::detail::jump_fcontext(transfer.fctx, 0); // 跳到normal_fun处 // 如果注掉则从main里直接退出
     return transfer;
 }
 
@@ -195,7 +215,7 @@ void normal_fun(boost::context::detail::transfer_t transfer)
     boost::context::detail::jump_fcontext(transfer.fctx, 0);
 }
 
-int transfer_ontop_fun_test() {
+int transfer_fun_test() {
     int stacksize = 1024 * 1024;
     char *stack = (char *) malloc(1024 * 1024);
     boost::context::detail::fcontext_t ctx = boost::context::detail::make_fcontext(stack, stacksize, normal_fun);
@@ -220,7 +240,7 @@ boost::context::detail::transfer_t ontop_fun(boost::context::detail::transfer_t 
     return boost::context::detail::transfer_t {transfer.fctx, 0};
 }
 
-int transfer_ontop_fun_test()
+int transfer_fun_test()
 {
     int stacksize = 1024 * 1024;
     char *stack = (char *) malloc(1024 * 1024);
@@ -234,10 +254,9 @@ int transfer_ontop_fun_test()
 #endif
 #endif
 
-int main()
+int main0()
 {
-    //transfer_fun_test();
-    transfer_ontop_fun_test();
+    transfer_fun_test();
 
     return 0;
 }
