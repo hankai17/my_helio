@@ -41,7 +41,7 @@ void AcceptServer::Run() {
 
     for (auto& lw : list_interface_) {
       ProactorBase* proactor = lw->socket()->proactor();
-      proactor->Dispatch([li = lw.get(), this] {
+      proactor->Dispatch([li = lw.get(), this] { // 通知每个线程起端口
         li->RunAcceptLoop();
         ref_bc_.Dec();
       });

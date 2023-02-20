@@ -105,7 +105,7 @@ auto EpollSocket::Accept() -> AcceptResult {
       break;
     }
 
-    read_context_->suspend();
+    read_context_->suspend(); // accept阻塞则suspend 调用suspend则不会把当前fiber挂到ready_list上 只有当epoll acceptfd事件到来则才触发该fiber继续运行 而非挂到ready_list上无脑轮询
   }
   read_context_ = nullptr;
   return nonstd::make_unexpected(ec);

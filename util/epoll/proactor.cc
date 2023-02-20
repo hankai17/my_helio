@@ -79,7 +79,7 @@ void EpollProactor::Init() {
 void EpollProactor::Run() {
   VLOG(1) << "EpollProactor::Run";
 
-  main_loop_ctx_ = fibers::context::active();
+  main_loop_ctx_ = fibers::context::active(); // 初始化并记录 线程中的main协程 scheduler
   fibers::scheduler* sched = main_loop_ctx_->get_scheduler();
 
   EpollFiberAlgo* algo = new EpollFiberAlgo(this);
