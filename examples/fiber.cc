@@ -51,7 +51,7 @@ int main2() {
     return 0; // 因为schedule队列没有调用时机 那么在析构时会遍历队列依次resume
 }
 
-int main3() {
+int main() {
     std::cout << "before fiber, active id: " << boost::fibers::context::active()->get_id() << std::endl;
     auto f = copies_are_safe(); // 1. fiber挂到schedule队列里
     std::cout << &f << ", id: " << f.get_id() << std::endl;
@@ -72,7 +72,7 @@ int main3() {
 using ready_queue_type = ::boost::fibers::scheduler::ready_queue_type;
 ready_queue_type rqueue_;
 
-int main() {
+int main4() {
 #if 1
     auto main_cntx = boost::fibers::context::active();
     auto main_scheduler = boost::fibers::context::active()->get_scheduler();
