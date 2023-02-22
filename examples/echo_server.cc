@@ -277,7 +277,7 @@ void RunServer(ProactorPool* pp) {
   AcceptServer acceptor(pp);
   acceptor.set_back_log(GetFlag(FLAGS_backlog));
 
-  acceptor.AddListener(GetFlag(FLAGS_port), new EchoListener);
+  //acceptor.AddListener(GetFlag(FLAGS_port), new EchoListener);
   if (GetFlag(FLAGS_http_port) >= 0) {
     uint16_t port = acceptor.AddListener(GetFlag(FLAGS_http_port), new HttpListener<>);
     LOG(INFO) << "Started http server on port " << port;

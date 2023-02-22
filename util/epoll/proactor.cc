@@ -83,8 +83,8 @@ void EpollProactor::Run() {
   fibers::scheduler* sched = main_loop_ctx_->get_scheduler();
 
   EpollFiberAlgo* algo = new EpollFiberAlgo(this);
-  sched->set_algo(algo);
-  this_fiber::properties<FiberProps>().set_name("ioloop");
+  sched->set_algo(algo); // 把全局目前唯一的dispatcher_ctx从原始的rr上摘下来 入队到新algo的队列里
+  this_fiber::properties<FiberProps>().set_name("ioloop"); // //运行dispatcher 把main_ctx挂队列上 // 运行main_ctx 把dispatcher挂队列上  "一来一回"目的是为了初始化main的属性   ---> 费劲
 
   is_stopped_ = false;
 
@@ -111,7 +111,7 @@ void EpollProactor::Run() {
       // update thread-local clock service via GetMonotonicTimeNs().
       tl_info_.monotonic_time = task_start;
       do {
-        task();
+        task(); // 起AcceptServer::Run协程 // post类型则不会立即resume 而是将其挂队列后边
         ++num_task_runs;
         ++cnt;
         tl_info_.monotonic_time = GetClockNanos();
