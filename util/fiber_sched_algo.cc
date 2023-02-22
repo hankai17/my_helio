@@ -45,7 +45,7 @@ void FiberSchedAlgo::awakened(FiberContext* ctx, FiberProps& props) noexcept {
     uint64_t now = ProactorBase::GetClockNanos();
     props.awaken_ts_ = now;
 
-    if (ctx != main_cntx_ && MainHasSwitched() && !main_cntx_->ready_is_linked()) {
+    if (ctx != main_cntx_ && MainHasSwitched() && !main_cntx_->ready_is_linked()) { // 若schedule过来的不是main_ctx 且 main_ctx不在ready队列上 且 当前已经进入了阶段2 且已经在执行各io子协程了
       uint64_t delta_us = (now - suspend_main_ts_) / 1000;
       if (delta_us > 1000) {  // 1ms
         DVLOG(2) << "Preemptively awakened io_loop after " << delta_us << " usec";
@@ -74,11 +74,11 @@ auto FiberSchedAlgo::pick_next() noexcept -> FiberContext* {
 
   // simplest 2-level priority queue.
   // choose main context first
-  if (flags_.ioloop_woke && main_cntx_->ready_is_linked()) {
+  if (flags_.ioloop_woke && main_cntx_->ready_is_linked()) { // 若main_ctx在ready队列上且ioloop_woke 则优先选main_ctx 将其从ready队列上摘下来  ioloop_woke=0
     ctx = main_cntx_;
     ctx->ready_unlink();
     flags_.ioloop_woke = 0;
-  } else {
+  } else { // 否则就从对头取 然后置为ioloop_yielded=1 即取到一个io子协程
     ctx = &rqueue_.front();
     rqueue_.pop_front();
 
@@ -189,7 +189,7 @@ bool FiberSchedAlgo::SuspendIoLoop(uint64_t now) {
   DVLOG(2) << "WaitTillFibersSuspend:Start";
   suspend_main_ts_ = now;
 
-  main_cntx_->suspend(); // // 开始"点炮"执行ready队列上的协程们
+  main_cntx_->suspend();
   flags_.ioloop_suspended = 0;
   flags_.ioloop_yielded = 0;
   flags_.ioloop_woke = 0;

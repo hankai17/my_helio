@@ -104,14 +104,14 @@ void EpollProactor::Run() {
 
     tq_seq = tq_seq_.load(memory_order_acquire);
 
-    if (task_queue_.try_dequeue(task)) {
+    if (task_queue_.try_dequeue(task)) { // 有一种外部队列的味道 readylist是本地队列
       uint32_t cnt = 0;
       uint64_t task_start = GetClockNanos();
 
       // update thread-local clock service via GetMonotonicTimeNs().
       tl_info_.monotonic_time = task_start;
       do {
-        task(); // 起AcceptServer::Run协程 // post类型则不会立即resume 而是将其挂队列后边
+        task(); // 1.ProactorBase::SetIndex // 2.起RunAcceptLoop协程 post类型则不会立即resume 而是将其挂队列后边
         ++num_task_runs;
         ++cnt;
         tl_info_.monotonic_time = GetClockNanos();
@@ -167,7 +167,7 @@ void EpollProactor::Run() {
     //    These rules a bit awkward because we hack into 3rd party fibers framework
     //    without the ability to build a straightforward epoll/fibers scheduler.
 
-    bool has_fiber_work = should_suspend || sched->has_ready_fibers();
+    bool has_fiber_work = should_suspend || sched->has_ready_fibers(); // ready队列仍未空
 
     if (!has_fiber_work && spin_loops >= kMaxSpinLimit) {
       spin_loops = 0;
@@ -227,7 +227,7 @@ void EpollProactor::Run() {
       DVLOG(2) << "Suspend ioloop";
       auto now = GetClockNanos();
       tl_info_.monotonic_time = now;
-      if (algo->SuspendIoLoop(now)) {
+      if (algo->SuspendIoLoop(now)) { // main_ctx挂起 但没有入队 // 运行本地队列时 为何不把main_ctx入队 ?
         should_suspend = false;
         ++num_suspends;
       }

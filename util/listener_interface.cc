@@ -89,7 +89,7 @@ void ListenerInterface::RunAcceptLoop() {
 
   PreAcceptLoop(sock_->proactor());
 
-  pool_->Await([this](auto*) { conn_list.emplace(this, new TLConnList{}); });
+  pool_->Await([this](auto*) { conn_list.emplace(this, new TLConnList{}); }); // 将lfd挂到所有epoll的树上 扔到外部队列 // 有点儿像YieldToHold 主动切出等待(虽然没有发生任何阻塞) 扔到外部队列了
 
   while (true) {
     FiberSocketBase::AcceptResult res = sock_->Accept();

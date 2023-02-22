@@ -254,7 +254,7 @@ class ProactorBase {
  private:
   template <typename Func> bool EmplaceTaskQueue(Func&& f) {
     if (task_queue_.try_enqueue(std::forward<Func>(f))) {
-      WakeupIfNeeded(); // 起端口任务挂队列上 异步通知该线程
+      WakeupIfNeeded();
 
       return true;
     }
@@ -278,7 +278,7 @@ inline void ProactorBase::WakeupIfNeeded() {
 }
 
 template <typename Func> bool ProactorBase::DispatchBrief(Func&& f) {
-  if (EmplaceTaskQueue(std::forward<Func>(f))) // 起端口任务挂队列上
+  if (EmplaceTaskQueue(std::forward<Func>(f)))
     return false;
 
   tq_full_ev_.fetch_add(1, std::memory_order_relaxed);

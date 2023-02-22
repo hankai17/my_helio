@@ -100,10 +100,10 @@ class ProactorPool {
     fibers_ext::BlockingCounter bc(size());
     auto cb = [func = std::forward<Func>(func), bc](ProactorBase* context) mutable {
       func(context);
-      bc.Dec();
+      bc.Dec(); // 执行完func后则恢复fiber
     };
-    DispatchBrief(std::move(cb));
-    bc.Wait();
+    DispatchBrief(std::move(cb)); // 仍外部队列
+    bc.Wait(); // 当前协程suspend
   }
 
   /**
