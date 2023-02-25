@@ -207,7 +207,7 @@ void EpollProactor::Run() {
 
       while (true) {
         VPRO(2) << "Fetched " << cqe_count << " cqes";
-        DispatchCompletions(cevents, cqe_count);
+        DispatchCompletions(cevents, cqe_count); // 上层回调 // EpollSocket::Wakey: schedule(ctx) 入队
 
         if (cqe_count < kBatchSize) {
           break;
@@ -355,7 +355,7 @@ void EpollProactor::DispatchCompletions(epoll_event* cevents, unsigned count) {
       DCHECK_LT(index, centries_.size());
       const auto& item = centries_[index];
 
-      if (item.cb) {  // We could disarm an event and get this completion afterwards.
+      if (item.cb) {  // We could disarm an event and get this completion afterwards. // EpollSocket::OnSetProactor
         item.cb(cqe.events, this);
       }
       continue;

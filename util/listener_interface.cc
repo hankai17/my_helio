@@ -109,11 +109,11 @@ void ListenerInterface::RunAcceptLoop() {
     ProactorBase* next = PickConnectionProactor(peer.get());
 
     peer->SetProactor(next);
-    Connection* conn = NewConnection(next);
+    Connection* conn = NewConnection(next); // 跟hammer有点像 可以调度到另一个线程中
     conn->SetSocket(peer.release());
 
     // Run cb in its Proactor thread.
-    next->Dispatch([this, conn] {
+    next->Dispatch([this, conn] { // 扔到外部队列上
       RunSingleConnection(conn); });
   }
 
